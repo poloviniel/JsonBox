@@ -39,7 +39,14 @@ namespace JsonBox {
 		const char MINUS = '-';
 		const char PLUS = '+';
 	}
-	
+
+    // Comment strings
+    namespace Comments {
+        const std::string WINGED = "//";
+        const std::string BOXED_BEGIN = "/*";
+        const std::string BOXED_END = "*/";
+    }
+
 	// Strings.
 	namespace Strings {
 		// C++ string characters.

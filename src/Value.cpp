@@ -542,7 +542,9 @@ namespace JsonBox {
 				input.get(currentCharacter);
 
 				if (input.good()) {
-					if (currentCharacter == Structural::BEGIN_END_STRING) {
+                    skipComments(input, currentCharacter);
+                    
+                    if (currentCharacter == Structural::BEGIN_END_STRING) {
 						// The value to be parsed is a string.
 						setString("");
 						readString(input, *data.stringValue);
@@ -758,6 +760,8 @@ namespace JsonBox {
 			input.get(currentCharacter);
 
 			if (input.good()) {
+                skipComments(input, currentCharacter);
+
 				if (currentCharacter & 0x80) { // 0x80 --> 10000000
 					// The character is part of an utf8 character.
 					constructing << currentCharacter;
@@ -856,8 +860,10 @@ namespace JsonBox {
 
 		while (noErrors && !input.eof()) {
 			input.get(currentCharacter);
+            skipComments(input, currentCharacter);
 
 			if (input.good()) {
+
 				if (currentCharacter == Structural::BEGIN_END_STRING) {
 					// We read the object's member's name.
 					readString(input, tmpString);
@@ -866,6 +872,7 @@ namespace JsonBox {
 					readToNonWhiteSpace(input, currentCharacter);
 
 					if (!input.eof()) {
+                        skipComments(input, currentCharacter);
 
 						// We make sure it's the right character.
 						if (currentCharacter == Structural::NAME_SEPARATOR) {
@@ -940,6 +947,10 @@ namespace JsonBox {
 		char currentCharacter;
 		std::stringstream constructing;
 
+        if (!input.eof()) {
+            skipComments(input, currentCharacter);
+        }
+        
 		if (!input.eof() && input.peek() == Numbers::DIGITS[0]) {
 			// We make sure there isn't more than one zero.
 			input.get(currentCharacter);
@@ -1105,4 +1116,51 @@ namespace JsonBox {
 
 		return output;
 	}
+    
+    void Value::skipComments(std::istream &input, char &currentCharacter) {
+        bool found = false;
+        do {
+            if (currentCharacter == Comments::WINGED[0] && input.peek() == Comments::WINGED[1]) {
+                skipToEOL(input, currentCharacter);
+                found = true;
+            } else if (currentCharacter == Comments::BOXED_BEGIN[0] && input.peek() == Comments::BOXED_BEGIN[1]) {
+                skipComment(input, currentCharacter);
+                found = true;
+            } else {
+                found = false;
+            }
+        } while (found);
+    }
+    
+    void Value::skipToEOL(std::istream &input, char &currentCharacter) {
+        bool eof;
+        do {
+			input.get(currentCharacter);
+            eof = input.eof();
+		} while (!eof
+                 && currentCharacter!=Whitespace::NEW_LINE
+                 && currentCharacter!=Whitespace::CARRIAGE_RETURN);
+        if (!eof) {
+            readToNonWhiteSpace(input, currentCharacter);
+        }
+    }
+    
+    void Value::skipComment(std::istream &input, char &currentCharacter) {
+        bool eof, found;
+        do {
+			input.get(currentCharacter);
+            eof = input.eof();
+            if (!eof) {
+                found = currentCharacter==Comments::BOXED_END[0] && input.peek()==Comments::BOXED_END[1];
+            }
+		} while (!eof && !found);
+
+        if (eof) {
+            std::cout << "Invalid boxed comment" << std::endl;
+            currentCharacter = ' ';
+        } else {
+            input.get(currentCharacter);
+            readToNonWhiteSpace(input, currentCharacter);
+        }
+    }
 }

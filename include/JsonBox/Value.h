@@ -577,6 +577,10 @@ namespace JsonBox {
 		static void readToNonWhiteSpace(std::istream &input,
 		                                char &currentCharacter);
 
+        static void skipComments(std::istream &input, char &currentCharacter);
+        static void skipToEOL(std::istream &input, char &currentCharacter);
+        static void skipComment(std::istream &input, char &currentCharacter);
+        
 		/**
 		 * Frees up the dynamic memory allocated by the value.
 		 */
